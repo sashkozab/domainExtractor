@@ -6,10 +6,14 @@ description="This script will extract domains from the file you specify and add 
 )
 parser.add_argument('--file', action="store", default=None, dest='inputFile',
 	help="Specify the file to extract domains from")
+parser.add_argument('--folder', action="store", default=None, dest='inputFolder',
+	help="Specify the folder with files to extract domains from")
 parser.add_argument('--url', action="store", default=None, dest='url',
 	help="Specify the web page to extract domains from. One at a time for now")
 parser.add_argument('--target', action="store", default='all', dest='target',
 	help="Specify the target top-level domain you'd like to find and extract e.g. uber.com")
+parser.add_argument('--output-file', action="store", default=None, dest='outputFile',
+	help="Specify the output file to collect results")
 parser.add_argument('--verbose', action="store_true", default=False, dest='verbose',
 	help="Enable slightly more verbose console output")
 args = parser.parse_args()
@@ -28,7 +32,11 @@ format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-outputFile = "final.{}.txt".format(args.target)
+
+if args.outputFile:
+	outputFile = args.outputFile
+else:
+	outputFile = "final.{}.txt".format(args.target)
 
 def extractDomains(args, inputFile, rawData):
 	domains = []
@@ -66,6 +74,27 @@ results = []
 if args.inputFile:
 	fileList = args.inputFile.split(',')
 	for inputFile in fileList:
+		try:
+			with open(inputFile, 'r') as f:
+				rawData = f.read().splitlines()
+		except UnicodeDecodeError:
+			with open(inputFile, 'r', encoding="ISO-8859-1") as f:
+				rawData = f.read().splitlines()
+				
+		results += extractDomains(args, inputFile, rawData)
+
+
+# If folder is specified, check them
+if args.inputFolder:
+	sourceFolder = args.inputFolder
+	print(sourceFolder)
+	fileList = []
+	for path, currentDirectory, files in os.walk(sourceFolder):
+		for file in files:
+			fileList.append(os.path.join(path, file))
+
+	for inputFile in fileList:
+		print(inputFile)
 		try:
 			with open(inputFile, 'r') as f:
 				rawData = f.read().splitlines()
